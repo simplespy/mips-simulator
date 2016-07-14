@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		932C0D061D2B924600A94108 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 932C0D051D2B924600A94108 /* main.cpp */; };
-		93568B5E1D2D2F3400253C6B /* MIPSSimulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 93568B5C1D2D2F3400253C6B /* MIPSSimulator.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,10 +23,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9323ECE01D372F8F00C70ECD /* instruction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = instruction.h; sourceTree = "<group>"; };
+		9323ECE11D372FBB00C70ECD /* register.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = register.h; sourceTree = "<group>"; };
+		9323ECE21D3766FB00C70ECD /* test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test.h; sourceTree = "<group>"; };
+		9323ECE31D37CC6000C70ECD /* extract.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = extract.h; sourceTree = "<group>"; };
+		9323ECE41D37CD1000C70ECD /* funciton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = funciton.h; sourceTree = "<group>"; };
 		932C0D021D2B924600A94108 /* MIPS-Simulator */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "MIPS-Simulator"; sourceTree = BUILT_PRODUCTS_DIR; };
 		932C0D051D2B924600A94108 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		93568B5C1D2D2F3400253C6B /* MIPSSimulator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MIPSSimulator.cpp; sourceTree = "<group>"; };
-		93568B5D1D2D2F3400253C6B /* MIPSSimulator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MIPSSimulator.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,8 +63,11 @@
 			isa = PBXGroup;
 			children = (
 				932C0D051D2B924600A94108 /* main.cpp */,
-				93568B5C1D2D2F3400253C6B /* MIPSSimulator.cpp */,
-				93568B5D1D2D2F3400253C6B /* MIPSSimulator.hpp */,
+				9323ECE01D372F8F00C70ECD /* instruction.h */,
+				9323ECE11D372FBB00C70ECD /* register.h */,
+				9323ECE21D3766FB00C70ECD /* test.h */,
+				9323ECE41D37CD1000C70ECD /* funciton.h */,
+				9323ECE31D37CC6000C70ECD /* extract.h */,
 			);
 			path = "MIPS-Simulator";
 			sourceTree = "<group>";
@@ -124,7 +129,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				932C0D061D2B924600A94108 /* main.cpp in Sources */,
-				93568B5E1D2D2F3400253C6B /* MIPSSimulator.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

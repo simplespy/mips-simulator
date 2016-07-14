@@ -12,143 +12,262 @@
 #include <vector>
 #include <cstring>
 #include <map>
+#include "instruction.h"
+#include "register.h"
+#include "test.h"
+#include "extract.h"
+#include "funciton.h"
 using namespace std;
+int type[] = {0,1,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,5,5,6,6,6,7,7,7,8,8,8,8,4,4};
 
 
+struct instruction{
+    int id;
+    int par[3];
+    int offset;
+    int number[3];
+    char la[3][100];
+    int rid[3];
+    instruction(){
+        for (int i = 0; i < 3; ++ i){
+            par[i] = number[i] = rid[i] = 0;
+        }
+        offset = id = 0;
+    }
+    /*
+     par[0]:Reg(id)
+     par[1]:label(add)=====1
+            Reg(id+off)====2
+            number=========3
+     par[2]:label==========1
+            Reg(id)========2
+            number=========3
+     */
+};
+vector<instruction> ins;
 vector<char*> command;
-map<string, unsigned long> lable;
-vector<unsigned char> memory;
-unsigned long pc;
+map<string, int> label;
+map<unsigned long, unsigned char> memory;
+int pc,hi,lo;
+char output[100];
+char input[100];
+Register reg;
+Instruction id;
 
-struct Register{
-    unsigned long regist[32];
-    map<string, unsigned long> Reg;
-    Register(){
-        Reg["v0"] = 2;
-        Reg["v1"] = 3;
-        Reg["a0"] = 4;
-        Reg["a1"] = 5;
-        Reg["a2"] = 6;
-        Reg["a3"] = 7;
-        Reg["t0"] = 8;
-        Reg["t1"] = 9;
-        Reg["t2"] = 10;
-        Reg["t3"] = 11;
-        Reg["t4"] = 12;
-        Reg["t5"] = 13;
-        Reg["t6"] = 14;
-        Reg["t7"] = 15;
-        Reg["s0"] = 16;
-        Reg["s1"] = 17;
-        Reg["s2"] = 18;
-        Reg["s3"] = 19;
-        Reg["s4"] = 20;
-        Reg["s5"] = 21;
-        Reg["s6"] = 22;
-        Reg["s7"] = 23;
-        Reg["t8"] = 24;
-        Reg["t9"] = 26;
-        Reg["sp"] = 29;
-        Reg["fp"] = 30;
-        Reg["ra"] = 31;
-
-        regist[29] = 0x80000000;
-    }
-    unsigned long& operator [](string lab){
-        if (Reg[lab] == 0) return regist[0] = 0;
-        return regist[Reg[lab]];
-    }
-    unsigned long& operator [](int id){
-        if (id == 0) return regist[0] = 0;
-        return regist[id];
-    }
-}reg;
 
 
 void Read_file();
-unsigned long Data_dec(int return_or_not);
-void forge_onward();
+int Data_dec(int return_or_not);
+void Ins_han();
+void get_para(char (&com)[100], instruction *&in, int &i);
+void forge_onward(fstream &fin);
+
+void extract(char (&com)[100], char (&r)[10], int &j);
+void extract_label (char (&in)[100], char (&r)[100], int begin);
+bool extract_ins(char (&a)[100], char (&b)[100], int & i);
+void extract_reg(char (&com)[100], char (&r)[10], int & j);
+int extract_num(char (&com)[100], int &i);
+
+
+
 
 /***********
    for test
  ***********/
-void test();
-void print_0x(int i = 831){
-    unsigned char *c;
-    c = (unsigned char *)&i;
-    printf("内存中存储情况：\n");
-    for (int n = 0; n < 4; n++)
- //       printf("  0x%x\t%02x\n",&i+n,c[n]);
-    printf("实际的16进制形式：\n");
-    printf("  0x%08x\n",i);
-
+void test(){
+    cout << "instruction : " << endl;
+    cout << "---------------------" << endl;
+    for (int i = 0; i < ins.size(); ++ i){
+        cout << ins[i].id << ":" << endl;
+        for (int j = 0; j < 3; ++ j) cout << ins[i].par[j] << ' ';
+        cout << endl;
+    }
 }
+int Count = 0;
+ofstream err("error.out");
 
 
 int main (int argc, const char* argv[]){
     freopen(argv[argc-1],"r",stdin);
-    freopen("argv.out","w",stdout);
-    Read_file();
-    test();
-    pc = lable["main"];
-    while (pc < command.size()) {
-        forge_onward();
+    int i = 0;
+    for (; i < strlen(argv[argc-1])-1; ++ i){
+        input[i] = argv[argc-1][i];
+        output[i] = argv[argc-1][i];
     }
+    input[i] = 'i';
+    output[i++] = 'o';
+    input[i] = 'n';
+    output[i++] = 'u';
+    output[i++] = 't';
+    freopen(output,"w",stdout);
+    fstream fin(input);
+    /*FILE SETTING*/
+    Read_file();
+    //test();
+    pc = label["main"];
+    while (pc < ins.size()) {
+        forge_onward(fin);
+    }
+    fin.close();
+    err.close();
 }
+
+
 
 void Read_file(){
     while (!cin.eof()){
-        char *in = new char[1024];
-        cin.getline(in, 1024);
-        int flag = 0;
+        char in[100];
+        cin.getline(in, 100);
         for (int i = 0; i < strlen(in); ++ i){
             if (in[i] == '.'){
                 if (in[i+1] == 'd') Data_dec(0);
-                else if (in[i>+1] == 't') break;
-                flag = 1;
-                break;
-            }
-            else if (in[i] == ':'){
-                in[i] = '\0';
-                lable[in] = command.size();
-                flag = 2;
-                break;
-            }
-            else if (in[i] == '#') {
-                flag = 1;
+                else if (in[i+1] == 't') Ins_han();
                 break;
             }
         }
-        if (flag == 0)command.push_back(in);
-
     }
 }
 
 
-void test(){
-    cout << "command : " << endl;
-    cout << "---------------------" << endl;
-    for (int i = 0; i < command.size(); ++ i){
-        cout << command[i] << endl;
+void Ins_han(){
+    while(!cin.eof()){
+        char in[100];
+        cin.getline(in, 100);
+        char com[100];
+        int i = 0;
+        for (int k = 0; k < strlen(in); ++ k){
+            if (in[k] == '#') in[k] = '\0';
+            if (in[k] == '.' && in[k+1] == 'd'){
+                Data_dec(0);
+                break;
+            }
+            else if (in[k] == '.' && in[k+1] == 't'){
+                in[k] = '\0';
+            }
+        }
+        if (extract_ins(in, com, i) && strlen(com) > 0){
+            instruction *newins = new instruction;
+            newins->id = id[com];
+            if (id[com] == 0 && !(com[0] == 's' && com[1] == 'y'))
+                err << "undefined type : " << com << endl;
+            get_para(in,newins,i);
+            ins.push_back(*newins);
+        }
+        else if(strlen(com) > 0){
+            label[com] = (int)ins.size();
+        }
     }
 }
 
-unsigned long Data_dec(int return_or_not){
+void get_para(char (&com)[100], instruction *&in, int &i){
+    char r[10];
+    char lab[100];
+    int tmp;
+    bool flag, flag2;
+    if (type[in->id] == 0) return;//syscall
+    if (type[in->id] == 7){//jal/b/j
+        extract_label(com, in->la[0], i);
+    }
+    else {
+        while (com[i] != '$') ++ i;
+        extract_reg(com, r, i);
+        in->par[0] = reg.get_id(r);
+        switch (type[in->id]) {
+            case 1 ://li(Reg, imm)
+                in->par[1] = extract_num(com, i);
+                break;
+            case 2 ://la/lb/sw/sd/sb/sh/lw(Reg, label/offset)
+                tmp = i;
+                flag = 0;
+                while (tmp < strlen(com)){
+                    if (com[tmp] == '(') {flag = 1;break;}
+                    ++ tmp;
+                }
+                if (flag) {//offset
+                    tmp = extract_num(com, i);
+                    extract_reg(com, r, i);
+                    in->par[1] = 2;
+                    in->rid[1] = reg.get_id(r);
+                    in->offset = tmp;
+                }
+                else {//label
+                    in->par[1] = 1;
+                    extract_label(com, in->la[1], i);
+                }
+                break;
+            case 3 ://bge/ble/beq/bgt/bne/blt(Reg, Reg/imm, label)
+                tmp = i;
+                flag = 0;
+                while (tmp < strlen(com)){
+                    if (com[tmp] == '$') {flag = 1;break;}
+                    ++ tmp;
+                }
+                if (flag){//Reg
+                    extract_reg(com, r, i);
+                    in->par[1] = 2;
+                    in->rid[1] = reg.get_id(r);
+                }
+                else {//imm
+                    in->par[1] = 3;
+                    in->number[1] = extract_num(com, i);
+                }
+                extract_label(com, in->la[2], i);
+                break;
+            case 4 ://add/mul/sub/div/slt/sle/sgt/sge/seq/rem(Reg, Reg, Reg/imm/none)
+                extract_reg(com, r, i);
+                in->par[1] = reg.get_id(r);
+                tmp = i;
+                flag = flag2 = 0;
+                while (tmp < strlen(com)){
+                    if (com[tmp] == '$') {flag = flag2 = 1;break;}
+                    if ((com[tmp] >= 'a' && com[tmp] <= 'z') || (com[tmp] >= '0' && com[tmp] <= '9')){flag2 = 1;}
+                    ++ tmp;
+                }
+                if (!flag2){
+                    in->offset = -1;
+                }//none
+                else {
+                    if (flag){//Reg
+                        extract_reg(com, r, i);
+                        in->par[2] = 2;
+                        in->rid[2] = reg.get_id(r);
+                    }
+                    else {//imm
+                        in->par[2] = 3;
+                        in->number[2] = extract_num(com, i);
+                    }
+
+                }
+                break;
+            case 5 ://move(Reg, Reg)
+                extract_reg(com, r, i);
+                in->par[1] = reg.get_id(r);
+                break;
+            case 8 ://beqz/bnez/bgez/bgtz(Reg, label)
+                extract_label(com, in->la[1], i);
+                break;
+        }
+    }
+}
+
+
+int Data_dec(int return_or_not){
     while (!cin.eof()){
-        char *in = new char[1024];
-        cin.getline(in, 1024);
+        char in[100];
+        cin.getline(in, 100);
         for (int i = 0; i < strlen(in); ++ i){
             if (in[i] == ':'){
-                in[i] = '\0';
-                lable[in] = Data_dec(1);
+                char l[100];
+                extract_label(in, l, 0);
+                label[l] = Data_dec(1);
             }
             else if (in[i] == '#'){
-                break;
+                in[i] = '\0';
             }
             else if (in[i] == '.'){
                 if (in[i+1] == 't'){
                     //text
-                    return 0;
+                    Ins_han();
                 }
                 //.word
                 else if (in[i+1] == 'w'){
@@ -160,8 +279,8 @@ unsigned long Data_dec(int return_or_not){
                     }
                     unsigned char *c = (unsigned char*)&num;
                     for (int n = 0; n < 4; ++ n)
-                        memory.push_back(c[n]);
-                    if (return_or_not == 1) return (memory.size() - 4);
+                        memory[memory.size()] = c[n];
+                    if (return_or_not == 1) return int(memory.size() - 4);
                 }//.word
                
                 //.ascii(z)
@@ -171,23 +290,32 @@ unsigned long Data_dec(int return_or_not){
                     while (in[i] != '"') ++ i;
                     unsigned long len = 0;
                     while (in[i+1] != '"'){
-                        if (in[i+1] == '\\' && in[i+2] == 'n'){
-                            memory.push_back('\n');
+                        if (in[i+1] == '\\'){
+                            switch (in[i+2]) {
+                                case 'n':
+                                    memory[memory.size()] = '\n';
+                                    break;
+                                case '\\':
+                                    memory[memory.size()] = '\\';
+                                    break;
+                                case '"':
+                                    memory[memory.size()] = '\"';
+                            }
                             ++ len;
                             i += 2;
                         }
                         else{
-                            memory.push_back(in[i+1]);
+                            memory[memory.size()] = in[i+1];
                             ++ len;
                             ++ i;
                         }
                     }
                     if (flag) {
-                        memory.push_back('\0');
+                        memory[memory.size()] = '\0';
                         ++ len;
                         ++ i;
                     }
-                    if (return_or_not == 1) return (memory.size() - len);
+                    if (return_or_not == 1) return int(memory.size() - len);
                 }//.ascii(z)
                 //.align
                 else if (in[i+1] == 'a' && in[i+2] == 'l'){
@@ -199,398 +327,392 @@ unsigned long Data_dec(int return_or_not){
                     }
                     unsigned long mod;
                     unsigned long base = 1;
-                    for (int i = 0; i < num; ++ i) base = (base << 1);
+                    for (int j = 0; j < num; ++ j) base = (base << 1);
                     mod = memory.size() % base;
                     if (mod) mod = base - mod;
                     while (mod --){
-                        memory.push_back(0);
+                        memory[memory.size()] = 0;
                     }
-                    //return what?
+                    break;
                 }
             }
         }
     }
     return 0;
 }
-
-void forge_onward(){
-    unsigned long i = pc;
-    for (int j = 0; j < strlen(command[i]); ++ j){
-        if (command[i][j] == '#') break;
-        //li
-        if (command[i][j] == 'l' && command[i][j+1]){
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
+//syscall
+void fun00(fstream &fin){
+    switch (reg[2]) {
+        case 1:
+            cout << reg[4];// << endl;
+            break;
+        case 4:{
+            unsigned long j = reg[4];
+            unsigned char ch = memory[j];
+            while (ch != '\0') {
+                cout << ch;//to be changed
+                ch = memory[++j];
             }
-            char r[3];
-            r[0] = command[i][++j];
-            r[1] = command[i][++j];
-            r[2] = '\0';
-            ++ j;
-            int num = 0;
-            while (command[i][j] < '0' || command[i][j] > '9') ++ j;
-            while (command[i][j] >= '0' && command[i][j] <= '9'){
-                num = num*10+command[i][j]-'0';
-                ++ j;
-            }
-            reg[r] = num;
+            break;
         }
-        //la
-        else if (command[i][j] == 'l' && command[i][j+1] == 'a'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r[3];
-            r[0] = command[i][++j];
-            r[1] = command[i][++j];
-            r[2] = '\0';
-            ++ j;
-            //lable or offset
-            while (command[i][j] == ' ') ++ j;
-            string lab = "";
-            while (j < strlen(command[i])){
-                lab += command[i][j];
-                ++ j;
+        case 5:{
+            fin >> reg[2];
+            char ch;
+            ch = fin.get();//to be checked
+            break;
+        }
+        case 8:{
+            char in[1024];
+            int j = 0;
+            fin.getline(in, reg[5]);
+            while (j < strlen(in)){
+                if (in[j] == '\\' && in[j+1] == 'n'){
+                    memory[reg[4]+j] = '\n';
+                    j += 2;
+                }else{
+                    memory[reg[4]+j] = in[j];
+                    ++ j;
+                }
             }
-            unsigned long add = lable[lab];
+            break;
+        }
+        case 9:
+            unsigned long mod;
+            mod = memory.size() % 4;
+            if (mod) mod = 4 - mod;
+            while (mod --){
+                memory[memory.size()] = 0;
+            }//align 2^2
             
-
-
-        }
-        //syscall
-        else if (command[i][j] == 's' && command[i][j+1] == 'y'){
-            switch (reg[2]) {
-                case 1:
-                    cout << reg[4] << endl;
-                    break;
-                case 4:{
-                    char *ch = reinterpret_cast<char*>(reg[4]);
-                    cout << ch << endl;
-                    break;
-                }
-                case 5:
-                    cin >> reg[2];
-                    break;
-                case 8:{
-                    char * in = reinterpret_cast<char*>(reg[4]);
-                    cin >> in;
-                    reg[5] = strlen(in) + 1;
-                    break;
-                }
-                case 9:
-                    for (int i = 0; i < reg[4]; ++ i){
-                        memory.push_back(0);
-                    }
-                    reg[2] = memory.size() - reg[4];
-                    break;
-                case 10:
-                    return;
-                    break;
-                case 17:
-                    return;
-                    break;
+            for (int i = 0; i < reg[4]; ++ i){
+                memory[memory.size()] = 0;
             }
-        }
-        //sw
-        else if (command[i][j] == 's'){
-            int flag = j+1;
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r[3];
-            r[0] = command[i][++j];
-            r[1] = command[i][++j];
-            r[2] = '\0';
-            ++ j;
-            while (command[i][j] == ',' || command[i][j] == ' ') ++ j;
-            bool minus = 0;
-            int del = 0;
-            if (command[i][j] == '-') {
-                minus = true;
-                ++ j;
-            }
-            while (command[i][j] >= '0' && command[i][j] <= '9'){
-                del = del * 10 + command[i][j] - '0';
-                ++ j;
-            }
-            if (minus) del = 0 - del;
-            string lab = "";
-            ++ j;
-            while (j < strlen(command[i])){
-                if (command[i][j] == '(') continue;
-                else if (command[i][j] == ')') break;
-                lab += command[i][j];
-                ++ j;
-            }
-            
-            unsigned long add = lable[lab]+del;
-            unsigned long num = reg[r];
-            unsigned char *c = (unsigned char*)&num;
-            int to = 0;
-            switch (command[i][flag]) {
-                case 'w':
-                    to = 4;
-                    break;
-                case 'h':
-                    to = 2;
-                    break;
-                case 'd':
-                    to = 8;
-                    break;
-                case 'b':
-                    to = 1;
-                    break;
-            }
-            for (int n = 0; n < to; ++ n)
-                memory[add+n] = c[n];
-        }
-        //lw
-        else if (command[i][j] == 'l' && command[i][j] == 'w'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r[3];
-            r[0] = command[i][++j];
-            r[1] = command[i][++j];
-            r[2] = '\0';
-            ++ j;
-            while (command[i][j] == ',' || command[i][j] == ' ') ++ j;
-            bool minus = 0;
-            int del = 0;
-            if (command[i][j] == '-') {
-                minus = true;
-                ++ j;
-            }
-            while (command[i][j] >= '0' && command[i][j] <= '9'){
-                del = del * 10 + command[i][j] - '0';
-                ++ j;
-            }
-            if (minus) del = 0 - del;
-            string lab = "";
-            ++ j;
-            while (j < strlen(command[i])){
-                if (command[i][j] == '(') continue;
-                else if (command[i][j] == ')') break;
-                lab += command[i][j];
-                ++ j;
-            }
-            
-            unsigned long add = lable[lab]+del;
-            unsigned long num = 0;
-            for (int n = 3; n >= 0; -- n)
-                num = num << 8 | memory[add+n];
-            reg[r] = num;
-        }
-
-        //jr
-        else if (command[i][j] == 'j' && command[i][j] == 'r'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r[3];
-            r[0] = command[i][++j];
-            r[1] = command[i][++j];
-            r[2] = '\0';
-            pc = reg[r];
-            return;
-        }
-        //jal(label)-jump and link
-        else if (command[i][j] == 'j' && (command[i][j+1] == 'a' || command[i][j+1] == ' ')){
-            int flag = j+1;
-            j += 3;
-            while (command[i][j] == ' ') ++ j;
-            string lab = "";
-            while (j < strlen(command[i])){
-                lab += command[i][j];
-                ++ j;
-            }
-            if (command[i][flag] == 'a') reg[31] = pc+1;
-            pc = lable[lab];
-            return;
-        }
-        //b/bge/beq/ble(Rsrc, src, label)
-        else if (command[i][j] == 'b'){
-            int flag = ++j;
-            char rsrc[3];
-            char src[3];
-            if (command[i][flag] != ' '){
-                while (j < strlen(command[i]) && command[i][j] != '$')++ j;
-                rsrc[0] = command[i][++j];
-                rsrc[1] = command[i][++j];
-                rsrc[2] = '\0';
-                ++ j;
-                while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-                src[0] = command[i][++j];
-                src[1] = command[i][++j];
-                src[2] = '\0';
-                ++ j;
-            }
-            while (command[i][j] == ',' || command[i][j] == ' ') ++ j;
-            string lab = "";
-            while (j < strlen(command[i])){
-                lab += command[i][j];
-                ++ j;
-            }
-            switch (command[i][flag]) {
-                case 'e':
-                    if (reg[rsrc] == reg[src]) pc = lable[lab];
-                    break;
-                case 'g':
-                    if (reg[rsrc] >= reg[src]) pc = lable[lab];
-                    break;
-                case 'l':
-                    if (reg[rsrc] <= reg[src]) pc = lable[lab];
-                    break;
-                case ' ':
-                    pc = lable[lab];
-            }
-            return;
-        }
-        //add(rdest, rsrc, src)
-        else if (command[i][j] == 'a' && command[i][j+1] == 'd'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char rdest[3];
-            rdest[0] = command[i][++j];
-            rdest[1] = command[i][++j];
-            rdest[2] = '\0';
-            ++ j;
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r1[3],r2[3];
-            r1[0] = command[i][++j];
-            r1[1] = command[i][++j];
-            r1[2] = '\0';
-            ++ j;
-            int tmp = j;
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            if (command[i][j] == '$'){
-                r2[0] = command[i][++j];
-                r2[1] = command[i][++j];
-                r2[2] = '\0';
-                ++ j;
-                reg[rdest] = reg[r1] + reg[r2];
-            }
-            else {
-                j = tmp;
-                int num = 0;
-                while (command[i][j] < '0' || command[i][j] > '9') ++ j;
-                while (command[i][j] >= '0' && command[i][j] <= '9'){
-                    num = num*10+command[i][j]-'0';
-                    ++ j;
-                }
-                reg[rdest] = reg[r1] + num;
-            }
-        }
-        //sub
-        else if (command[i][j] == 's' && command[i][j+1] == 'u'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char rdest[3];
-            rdest[0] = command[i][++j];
-            rdest[1] = command[i][++j];
-            rdest[2] = '\0';
-            ++ j;
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r1[3],r2[3];
-            r1[0] = command[i][++j];
-            r1[1] = command[i][++j];
-            r1[2] = '\0';
-            ++ j;
-            int tmp = j;
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            if (command[i][j] == '$'){
-                r2[0] = command[i][++j];
-                r2[1] = command[i][++j];
-                r2[2] = '\0';
-                ++ j;
-                reg[rdest] = reg[r1] - reg[r2];
-            }
-            else {
-                j = tmp;
-                int num = 0;
-                while (command[i][j] < '0' || command[i][j] > '9') ++ j;
-                while (command[i][j] >= '0' && command[i][j] <= '9'){
-                    num = num*10+command[i][j]-'0';
-                    ++ j;
-                }
-                reg[rdest] = reg[r1] - num;
-            }
-        }
-
-        //mul
-        else if (command[i][j] == 'm' && command[i][j+1] == 'u'){
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            char rdest[3];
-            rdest[0] = command[i][++j];
-            rdest[1] = command[i][++j];
-            rdest[2] = '\0';
-            ++ j;
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            char r1[3],r2[3];
-            r1[0] = command[i][++j];
-            r1[1] = command[i][++j];
-            r1[2] = '\0';
-            ++ j;
-            int tmp = j;
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            if (command[i][j] == '$'){
-                r2[0] = command[i][++j];
-                r2[1] = command[i][++j];
-                r2[2] = '\0';
-                ++ j;
-                reg[rdest] = reg[r1] * reg[r2];
-            }
-            else {
-                j = tmp;
-                int num = 0;
-                while (command[i][j] < '0' || command[i][j] > '9') ++ j;
-                while (command[i][j] >= '0' && command[i][j] <= '9'){
-                    num = num*10+command[i][j]-'0';
-                    ++ j;
-                }
-                reg[rdest] = reg[r1] * num;
-            }
-        }
-        //slt(rdest, rsrc, src)
-        else if (command[i][j] == 's' && command[i][j+1] == 'l'){
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char rdest[3];
-            rdest[0] = command[i][++j];
-            rdest[1] = command[i][++j];
-            rdest[2] = '\0';
-            ++ j;
-            while (j < strlen(command[i]) && command[i][j] != '$') ++ j;
-            char r1[3],r2[3];
-            r1[0] = command[i][++j];
-            r1[1] = command[i][++j];
-            r1[2] = '\0';
-            ++ j;
-            int tmp = j;
-            while (j < strlen(command[i]) && command[i][j] != '$'){
-                ++ j;
-            }
-            if (command[i][j] == '$'){
-                r2[0] = command[i][++j];
-                r2[1] = command[i][++j];
-                r2[2] = '\0';
-                ++ j;
-                if (reg[r1] < reg[r2]) reg[rdest] = 1;
-                else reg[rdest] = 0;
-            }
-            else {
-                j = tmp;
-                int num = 0;
-                while (command[i][j] < '0' || command[i][j] > '9') ++ j;
-                while (command[i][j] >= '0' && command[i][j] <= '9'){
-                    num = num*10+command[i][j]-'0';
-                    ++ j;
-                }
-                reg[rdest] = reg[r1] + num;
-            }
-        }
-
-
+            reg[2] = (int)memory.size() - reg[4];
+            break;
+        case 10:
+            exit(0);
+        case 17:
+            exit(reg[4]);
     }
     ++ pc;
-    return;
+}
+//li(Rdest, imm)
+void fun1(int i){
+    reg[ins[i].par[0]] = ins[i].par[1];
+    ++ pc;
+}
+//la(Rdest, label/offset)
+void fun2(int i){
+    if (ins[i].par[1] == 1){
+        reg[ins[i].par[0]] = label[ins[i].la[1]];
+    }
+    else {
+        reg[ins[i].par[0]] = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    ++ pc;
+}
+//lb(Rdest, label/offset)
+void fun3(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    int num = 0;
+    for (int n = 0; n >= 0; -- n)
+        num = num << 8 | memory[addr+n];
+    reg[ins[i].par[0]] = num;
+    ++ pc;
+}
+//lw(Rdest, label/offset)
+void fun4(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    int num = 0;
+    for (int n = 3; n >= 0; -- n)
+        num = num << 8 | memory[addr+n];
+    reg[ins[i].par[0]] = num;
+    ++ pc;
+}
+//sw/sh/sb/sd(Rsrc, add)
+void fun5(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    unsigned char *c = (unsigned char*)&reg[ins[i].par[0]];
+    for (int n = 0; n < 1; ++ n)
+        memory[addr+n] = c[n];
+    ++ pc;
+}
+void fun6(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    unsigned char *c = (unsigned char*)&reg[ins[i].par[0]];
+    for (int n = 0; n < 2; ++ n)
+        memory[addr+n] = c[n];
+    ++ pc;
+}
+
+void fun7(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    unsigned char *c = (unsigned char*)&reg[ins[i].par[0]];
+    for (int n = 0; n < 4; ++ n)
+        memory[addr+n] = c[n];
+    ++ pc;
+}
+
+void fun8(int i){
+    unsigned long addr = 0;
+    if (ins[i].par[1] == 1){
+        addr = label[ins[i].la[1]];
+    }
+    else {
+        addr = reg[ins[i].rid[1]] + ins[i].offset;
+    }
+    unsigned char *c = (unsigned char*)&reg[ins[i].par[0]];
+    for (int n = 0; n < 8; ++ n)
+        memory[addr+n] = c[n];
+    ++ pc;
+}
+//blt/ble/bgt/bge/beq/bne(Reg, Reg/imm, label)
+void fun9(int i){
+    int num;
+    if (ins[i].par[1] == 2){
+        num = reg[ins[i].rid[1]];
+    }
+    else {
+        num = ins[i].number[1];
+    }
+    if (reg[ins[i].par[0]] < num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+void fun10(int i){
+    int num;
+    if (ins[i].par[1] == 2){
+        num = reg[ins[i].rid[1]];
+    }
+    else {
+        num = ins[i].number[1];
+    }
+    if (reg[ins[i].par[0]] <= num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+void fun11(int i){
+    int num;
+    if (ins[i].par[1] == 2){
+        num = reg[ins[i].rid[1]];
+    }
+    else {
+        num = ins[i].number[1];
+    }
+    if (reg[ins[i].par[0]] > num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+void fun12(int i){
+    int num;
+    if (ins[i].par[1] == 2){
+        num = reg[ins[i].rid[1]];
+    }
+    else {
+        num = ins[i].number[1];
+    }
+    if (reg[ins[i].par[0]] >= num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+void fun13(int i){
+    int num;
+    if (ins[i].par[1] == 2){
+        num = reg[ins[i].rid[1]];
+    }
+    else {
+        num = ins[i].number[1];
+    }
+    if (reg[ins[i].par[0]] == num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+void fun14(int i){
+    int num;
+    if (ins[i].par[1] == 2) num = reg[ins[i].rid[1]];
+    else num = ins[i].number[1];
+    if (reg[ins[i].par[0]] != num) pc = label[ins[i].la[2]];
+    else ++ pc;
+}
+//add/mul/sub/div(rdest, rsrc, reg/imm/none)
+void fun15(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] + num;
+    ++ pc;
+}
+void fun16(int i){
+    int num;
+    if (ins[i].offset == -1){
+        long long ans;
+        ans = (long long)reg[ins[i].par[0]] * reg[ins[i].par[1]];
+        lo = (int)ans;
+        hi = ans >> 32;
+    }
+    else {
+        if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+        else num = ins[i].number[2];
+        reg[ins[i].par[0]] = reg[ins[i].par[1]] * num;
+    }
+        ++ pc;
+}
+void fun17(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] - num;
+    ++ pc;
+}
+void fun18(int i){
+    int num;
+    if (ins[i].offset == -1){
+        lo = reg[ins[i].par[0]] / reg[ins[i].par[1]];
+        hi = reg[ins[i].par[0]] % reg[ins[i].par[1]];
+    }
+    else {
+        if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+        else num = ins[i].number[2];
+        reg[ins[i].par[0]] = reg[ins[i].par[1]] / num;
+    }
+    ++ pc;
+}
+void fun19(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] % num;
+    ++ pc;
+}
+//slt/sle/sgt/sge/seq
+void fun20(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] < num ? 1 : 0;
+    ++ pc;
+}
+void fun21(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] <= num ? 1 : 0;
+    ++ pc;
+}void fun22(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] > num ? 1 : 0;
+    ++ pc;
+}void fun23(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] >= num ? 1 : 0;
+    ++ pc;
+}void fun24(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] == num ? 1 : 0;
+    ++ pc;
+}
+//move(rdest, rsrc)
+void fun25(int i){
+    reg[ins[i].par[0]] = reg[ins[i].par[1]];
+    ++ pc;
+}
+//neg(Rdest, Rsrc)
+void fun26(int i){
+    reg[ins[i].par[0]] = 0 - reg[ins[i].par[1]];
+    ++ pc;
+}
+//jr(Rdest)
+void fun27(int i){
+    pc = reg[ins[i].par[0]];
+}
+//mflo/mfhi(Rdest)
+void fun28(int i){
+    reg[ins[i].par[0]] = lo;
+    ++ pc;
+}
+void fun29(int i){
+    reg[ins[i].par[0]] = hi;
+    ++ pc;
+}
+//jal/b/j(label)
+void fun30(int i){
+    reg[31] = pc + 1;
+    pc = label[ins[i].la[0]];
+}
+void fun31(int i){
+    pc = label[ins[i].la[0]];
+}
+void fun32(int i){
+    pc = label[ins[i].la[0]];
+}
+
+//bgtz/bgez/beqz/bnez(Reg, label)
+void fun33(int i){
+    if (reg[ins[i].par[0]] > 0) pc = label[ins[i].la[1]];
+    else ++ pc;
+}
+void fun34(int i){
+    if (reg[ins[i].par[0]] >= 0) pc = label[ins[i].la[1]];
+    else ++ pc;
+}
+void fun35(int i){
+    if (reg[ins[i].par[0]] == 0) pc = label[ins[i].la[1]];
+    else ++ pc;
+}
+void fun36(int i){
+    if (reg[ins[i].par[0]] != 0) pc = label[ins[i].la[1]];
+    else ++ pc;
+}
+//xor
+void fun37(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] xor num;
+    ++ pc;
+}
+//sne
+void fun38(int i){
+    int num;
+    if (ins[i].par[2] == 2) num = reg[ins[i].rid[2]];
+    else num = ins[i].number[2];
+    reg[ins[i].par[0]] = reg[ins[i].par[1]] != num ? 1 : 0;
+    ++ pc;
+}
+
+void forge_onward(fstream &fin){
+    //err << optimally[ins[pc].id] << endl;
+    if (ins[pc].id == 0) fun00(fin);
+    else f[ins[pc].id](pc);
 }
