@@ -1,33 +1,6 @@
-target:
-	g++ main.cpp -o final;\
-	./final twinprime-5090379042-jiaxiao.s;\
-	./final array_test1-mahaojun.s;\
-	./final array_test2-mahaojun.s;\
-	./final basicopt1-5100309127-hetianxing.s\
-	./final builtin-5140519064-youyurong.s\
-	./final bulgarian-5110379024-wuhang.s\
-	./final class_test-mahaojun.s;\
-	./final expr-5110309085-jintianxing.s\
-	./final function_test-huyuncong.s;\
-	./final gcd-5090379042-jiaxiao.s;\
-	./final hanoi-5100379110-daibo.s;\
-	./final hashmap-5100309127-hetianxing.s;\
-	./final heapsort-5100379110-daibo.s;\
-	./final horse-5100309153-yanghuan.s;\
-	./final horse2-5100309153-yanghuan.s;\
-	./final horse3-5100309153-yanghuan.s;\
-	./final lvalue2-5110379024-wuhang.s;\
-	./final magic-5100309153-yanghuan.s;\
-	./final manyarguments-5100379110-daibo.s;\
-	./final maxflow-5100379110-daibo.s;\
-	./final multiarray-5100309153-yanghuan.s;\
-	./final pi-5090379042-jiaxiao.s;\
-	./final prime-5100309153-yanghuan.s;\
-	./final qsort-5100379110-daibo.s;\
-	./final queens-5100379110-daibo.s;\
-	./final spill2-5100379110-daibo.s;\
-	./final statement_test-huyuncong.s;\
-	./final string_test-huyuncong.s;\
-	./final superloop-5090379042-jiaxiao.s;\
-	./final tak-5090379042-jiaxiao.s;\
-	./final twinprime-5090379042-jiaxiao.s;
+all : main.o
+	g++ main.o -o final
+main.o: main.cpp
+	g++ -c main.cpp
+clean:
+	rm *o
