@@ -42,11 +42,15 @@ void extract_reg(char (&com)[100], char (&r)[10], int & j);
 int extract_num(char (&com)[100], int &i);
 
 int main (int argc, const char* argv[]){
-    freopen(argv[argc-1],"r",stdin);
-    File_config(argc, argv[argc-1]);
-    freopen(output,"w",stdout);
-    fstream fin(input);
-
+    //freopen(argv[argc-1],"r",stdin);
+    //File_config(argc, argv[argc-1]);
+    //freopen(output,"w",stdout);
+    //fstream fin(input);
+    freopen("data.s","r",stdin);
+    freopen("data.out","w",stdout);
+    fstream fin("data.in");
+    
+    
     Read_file();
     pc = label["main"];
     while (pc < ins.size()) {
