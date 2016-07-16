@@ -40,13 +40,13 @@ void extract_label (char (&in)[100], char (&r)[100], int begin);
 bool extract_ins(char (&a)[100], char (&b)[100], int & i);
 void extract_reg(char (&com)[100], char (&r)[10], int & j);
 int extract_num(char (&com)[100], int &i);
+fstream fin("data.s");
 
 int main (int argc, const char* argv[]){
     //freopen(argv[argc-1],"r",stdin);
     //freopen("data.s","r",stdin);
    // File_config(argc, argv[argc-1]);
    // freopen(output,"w",stdout);
-    fstream fin("data.s");
     
     //freopen("data.out","w",stdout);
     //fstream fin("data.in");
