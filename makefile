@@ -1,4 +1,3 @@
-export -x MSCK=./final
 all : main.o
 	g++ main.o -o final
 main.o: main.cpp
