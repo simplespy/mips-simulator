@@ -33,7 +33,7 @@ void Read_file();
 int Data_dec(int return_or_not);
 void Ins_han();
 void get_para(char (&com)[100], instruction *&in, int &i);
-void forge_onward(fstream &fin);
+void forge_onward();
 
 void extract(char (&com)[100], char (&r)[10], int &j);
 void extract_label (char (&in)[100], char (&r)[100], int begin);
@@ -43,10 +43,10 @@ int extract_num(char (&com)[100], int &i);
 
 int main (int argc, const char* argv[]){
     //freopen(argv[argc-1],"r",stdin);
-    freopen("data.s","r",stdin);
-    File_config(argc, argv[argc-1]);
-    freopen(output,"w",stdout);
-    fstream fin(input);
+    //freopen("data.s","r",stdin);
+   // File_config(argc, argv[argc-1]);
+   // freopen(output,"w",stdout);
+    fstream fin("data.s");
     
     //freopen("data.out","w",stdout);
     //fstream fin("data.in");
@@ -55,7 +55,7 @@ int main (int argc, const char* argv[]){
     Read_file();
     pc = label["main"];
     while (pc < ins.size()) {
-        forge_onward(fin);
+        forge_onward();
     }
     fin.close();
     err.close();
@@ -76,9 +76,9 @@ void File_config(int & argc, const char *&file){
 }
 
 void Read_file(){
-    while (!cin.eof()){
+    while (!fin.eof()){
         char in[100];
-        cin.getline(in, 100);
+        fin.getline(in, 100);
         for (int i = 0; i < strlen(in); ++ i){
             if (in[i] == '.'){
                 if (in[i+1] == 'd') Data_dec(0);
@@ -91,9 +91,9 @@ void Read_file(){
 
 
 void Ins_han(){
-    while(!cin.eof()){
+    while(!fin.eof()){
         char in[100];
-        cin.getline(in, 100);
+        fin.getline(in, 100);
         char com[100];
         int i = 0;
         for (int k = 0; k < strlen(in); ++ k){
@@ -213,9 +213,9 @@ void get_para(char (&com)[100], instruction *&in, int &i){
 
 
 int Data_dec(int return_or_not){
-    while (!cin.eof()){
+    while (!fin.eof()){
         char in[100];
-        cin.getline(in, 100);
+        fin.getline(in, 100);
         for (int i = 0; i < strlen(in); ++ i){
             if (in[i] == ':'){
                 char l[100];
@@ -302,7 +302,7 @@ int Data_dec(int return_or_not){
     return 0;
 }
 //syscall
-void fun00(fstream &fin){
+void fun00(){
     switch (reg[2]) {
         case 1:
             cout << reg[4];// << endl;
@@ -317,15 +317,15 @@ void fun00(fstream &fin){
             break;
         }
         case 5:{
-            fin >> reg[2];
+            cin >> reg[2];
             char ch;
-            ch = fin.get();//to be checked
+            ch = cin.get();//to be checked
             break;
         }
         case 8:{
             char in[1024];
             int j = 0;
-            fin.getline(in, reg[5]);
+            cin.getline(in, reg[5]);
             while (j < strlen(in)){
                 if (in[j] == '\\' && in[j+1] == 'n'){
                     memory[reg[4]+j] = '\n';
@@ -689,9 +689,9 @@ void fun38(int i){
     ++ pc;
 }
 
-void forge_onward(fstream &fin){
+void forge_onward(){
     ++ sum;
     //err << optimally[ins[pc].id] << endl;
-    if (ins[pc].id == 0) fun00(fin);
+    if (ins[pc].id == 0) fun00();
     else f[ins[pc].id](pc);
 }
