@@ -40,7 +40,7 @@ void extract_label (char (&in)[100], char (&r)[100], int begin);
 bool extract_ins(char (&a)[100], char (&b)[100], int & i);
 void extract_reg(char (&com)[100], char (&r)[10], int & j);
 int extract_num(char (&com)[100], int &i);
-fstream fin("data.s");
+fstream fin;
 
 int main (int argc, const char* argv[]){
     //freopen(argv[argc-1],"r",stdin);
@@ -51,7 +51,7 @@ int main (int argc, const char* argv[]){
     //freopen("data.out","w",stdout);
     //fstream fin("data.in");
     
-    
+    fin.open(argv[1], ios :: in);
     Read_file();
     pc = label["main"];
     while (pc < ins.size()) {
