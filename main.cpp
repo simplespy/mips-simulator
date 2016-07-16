@@ -46,6 +46,7 @@ int main (int argc, const char* argv[]){
     //File_config(argc, argv[argc-1]);
     //freopen(output,"w",stdout);
     //fstream fin(input);
+    
     freopen("data.s","r",stdin);
     freopen("data.out","w",stdout);
     fstream fin("data.in");
