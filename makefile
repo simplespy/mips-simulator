@@ -1,5 +1,5 @@
 all : main.o
-	g++ main.o -o final
+	mkdir bin && g++ main.o -o bin/final
 main.o: main.cpp
 	g++ -c main.cpp
 clean:
