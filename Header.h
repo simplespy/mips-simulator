@@ -1,23 +1,10 @@
-//
-//  Header.h
-//  MIPS-Simulator
-//
-//  Created by 盛佩瑶 on 16/7/15.
-//  Copyright © 2016年 盛佩瑶. All rights reserved.
-//
-
 #ifndef Header_h
 #define Header_h
 using namespace std;
 const int type[] = {0,1,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,5,5,6,6,6,7,7,7,8,8,8,8,4,4};
-
 struct instruction{
-    int id;
-    int par[3];
-    int offset;
-    int number[3];
+    int id, par[3], offset, number[3], rid[3];
     char la[3][100];
-    int rid[3];
     instruction(){
         for (int i = 0; i < 3; ++ i){
             par[i] = number[i] = rid[i] = 0;
@@ -25,7 +12,6 @@ struct instruction{
         offset = id = 0;
     }
 };
-
 struct Instruction{
     map<string, int> ID;
     Instruction(){
@@ -70,12 +56,9 @@ struct Instruction{
         ID["bnez"] = 36;
         ID["xor"] = 37;
         ID["sne"] = 38;
-        
+
     }
-    int operator [](char ins[]){
-        return ID[ins];
-    }
-    
+    int operator [](char ins[]){ return ID[ins];}
 };
 
 struct Register{
@@ -125,11 +108,8 @@ struct Register{
         return Reg[lab];
     }
 };
-
-void fun00(fstream &fin);
-void fun0(int i){
-    cout << "I am a salted fish " << endl;
-}
+void fun00();
+void fun0(int i){ cout << "I am a salted fish " << endl;}
 void fun1(int i);
 void fun2(int i);
 void fun3(int i);
@@ -168,9 +148,7 @@ void fun35(int i);
 void fun36(int i);
 void fun37(int i);
 void fun38(int i);
-
 void (*f[])(int i) = {fun0, fun1, fun2, fun3, fun4, fun5, fun6, fun7, fun8, fun9, fun10,fun11, fun12, fun13, fun14, fun15, fun16, fun17, fun18, fun19, fun20, fun21, fun22, fun23, fun24, fun25, fun26, fun27, fun28, fun29, fun30, fun31, fun32, fun33, fun34, fun35, fun36, fun37, fun38};
-
 void extract_label (char (&in)[100], char (&r)[100], int begin){
     memset(r,0,sizeof(r));
     int len = 0;
@@ -183,7 +161,6 @@ void extract_label (char (&in)[100], char (&r)[100], int begin){
     }
     r[len] = '\0';
 }
-
 bool extract_ins(char (&a)[100], char (&b)[100], int & i){
     memset(b,0,sizeof(b));
     int len = 0;
@@ -199,7 +176,6 @@ bool extract_ins(char (&a)[100], char (&b)[100], int & i){
     if (a[i] == ':') return false;
     return true;
 }
-
 void extract_reg(char (&com)[100], char (&r)[10], int & j){
     memset(r,0,sizeof(r));
     int len = 0;
@@ -213,7 +189,6 @@ void extract_reg(char (&com)[100], char (&r)[10], int & j){
     }
     r[len] = '\0';
 }
-
 int extract_num(char (&com)[100], int &i){
     int num = 0;
     bool minus = 0;
@@ -228,21 +203,4 @@ int extract_num(char (&com)[100], int &i){
     if (minus) num = 0 - num;
     return num;
 }
-
-/***********
- for test
- ***********/
-/*void test(){
-    cout << "instruction : " << endl;
-    cout << "---------------------" << endl;
-    for (int i = 0; i < ins.size(); ++ i){
-        cout << ins[i].id << ":" << endl;
-        for (int j = 0; j < 3; ++ j) cout << ins[i].par[j] << ' ';
-        cout << endl;
-    }
-}
-int Count = 0;*/
-ofstream err("error.out");
-
-
 #endif /* Header_h */

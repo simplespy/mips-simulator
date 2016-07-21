@@ -1,11 +1,3 @@
-//
-//  main.cpp
-//  MIPS-Simulator
-//
-//  Created by 盛佩瑶 on 16/7/6.
-//  Copyright © 2016年 盛佩瑶. All rights reserved.
-//
-
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -14,22 +6,19 @@
 #include <cstring>
 #include <map>
 #include "Header.h"
+#include "Pipelined.h"
 using namespace std;
 
 vector<instruction> ins;
-vector<char*> command;
 map<string, int> label;
 map<unsigned long, unsigned char> memory;
 
 int pc, hi, lo;
-char output[100], input[100];
-
 Register reg;
 Instruction id;
 
 long long sum = 0, cal = 0, jump = 0, load = 0, store = 0;
 
-void File_config(int &argc, const char *&file);
 void Read_file();
 int Data_dec(int return_or_not);
 void Ins_han();
@@ -41,39 +30,18 @@ void extract_label (char (&in)[100], char (&r)[100], int begin);
 bool extract_ins(char (&a)[100], char (&b)[100], int & i);
 void extract_reg(char (&com)[100], char (&r)[10], int & j);
 int extract_num(char (&com)[100], int &i);
+
 fstream fin;
 
 int main (int argc, const char* argv[]){
-    //freopen(argv[argc-1],"r",stdin);
-    //freopen("data.s","r",stdin);
-   // File_config(argc, argv[argc-1]);
-   // freopen(output,"w",stdout);
-    
-    //freopen("data.out","w",stdout);
-    //fstream fin("data.in");
-    
     fin.open(argv[1], ios :: in);
     Read_file();
     pc = label["main"];
     while (pc < ins.size()) {
         forge_onward();
     }
+    Pipelined();//cl = clock cycle
     fin.close();
-    err.close();
-}
-
-
-void File_config(int & argc, const char *&file){
-    int i = 0;
-    for (; i < strlen(file)-1; ++ i){
-        input[i] = file[i];
-        output[i] = file[i];
-    }
-    input[i] = 'i';
-    output[i++] = 'o';
-    input[i] = 'n';
-    output[i++] = 'u';
-    output[i++] = 't';
 }
 
 void Read_file(){
@@ -89,8 +57,6 @@ void Read_file(){
         }
     }
 }
-
-
 void Ins_han(){
     while(!fin.eof()){
         char in[100];
@@ -103,21 +69,17 @@ void Ins_han(){
                 Data_dec(0);
                 break;
             }
-            else if (in[k] == '.' && in[k+1] == 't'){
-                in[k] = '\0';
-            }
+            else if (in[k] == '.' && in[k+1] == 't') in[k] = '\0';
         }
         if (extract_ins(in, com, i) && strlen(com) > 0){
             instruction *newins = new instruction;
             newins->id = id[com];
             if (id[com] == 0 && !(com[0] == 's' && com[1] == 'y'))
-                err << "undefined type : " << com << endl;
+                cerr << "undefined type : " << com << endl;
             get_para(in,newins,i);
             ins.push_back(*newins);
         }
-        else if(strlen(com) > 0){
-            label[com] = (int)ins.size();
-        }
+        else if(strlen(com) > 0) label[com] = (int)ins.size();
     }
 }
 
@@ -198,7 +160,7 @@ void get_para(char (&com)[100], instruction *&in, int &i){
                         in->par[2] = 3;
                         in->number[2] = extract_num(com, i);
                     }
-
+                    
                 }
                 break;
             case 5 ://move(Reg, Reg)
@@ -227,11 +189,7 @@ int Data_dec(int return_or_not){
                 in[i] = '\0';
             }
             else if (in[i] == '.'){
-                if (in[i+1] == 't'){
-                    //text
-                    Ins_han();
-                }
-                //.word
+                if (in[i+1] == 't') Ins_han();
                 else if (in[i+1] == 'w'){
                     int num = 0;
                     while (i < strlen(in)){
@@ -244,8 +202,6 @@ int Data_dec(int return_or_not){
                         memory[memory.size()] = c[n];
                     if (return_or_not == 1) return int(memory.size() - 4);
                 }//.word
-               
-                //.ascii(z)
                 else if (in[i+1] == 'a' && in[i+2] == 's'){
                     bool flag = false;
                     if (in[i+6] == 'z') flag = true;
@@ -254,28 +210,20 @@ int Data_dec(int return_or_not){
                     while (in[i+1] != '"'){
                         if (in[i+1] == '\\'){
                             switch (in[i+2]) {
-                                case 'n':
-                                    memory[memory.size()] = '\n';
-                                    break;
-                                case '\\':
-                                    memory[memory.size()] = '\\';
-                                    break;
-                                case '"':
-                                    memory[memory.size()] = '\"';
+                                case 'n': memory[memory.size()] = '\n'; break;
+                                case '\\': memory[memory.size()] = '\\'; break;
+                                case '"': memory[memory.size()] = '\"'; break;
                             }
-                            ++ len;
-                            i += 2;
+                            ++ len;  i += 2;
                         }
                         else{
                             memory[memory.size()] = in[i+1];
-                            ++ len;
-                            ++ i;
+                            ++ len; ++ i;
                         }
                     }
                     if (flag) {
                         memory[memory.size()] = '\0';
-                        ++ len;
-                        ++ i;
+                        ++ len; ++ i;
                     }
                     if (return_or_not == 1) return int(memory.size() - len);
                 }//.ascii(z)
@@ -302,25 +250,32 @@ int Data_dec(int return_or_not){
     }
     return 0;
 }
+
+void forge_onward(){
+    if (ins[pc].id == 0) exe[sum] = 0 - reg[2];
+    else exe[sum] = pc;
+    ++ sum;
+    if (ins[pc].id == 0) fun00();
+    else f[ins[pc].id](pc);
+}
 //syscall
 void fun00(){
     switch (reg[2]) {
         case 1:
-            cout << reg[4];// << endl;
+            cout << reg[4];
             break;
         case 4:{
             unsigned long j = reg[4];
             unsigned char ch = memory[j];
             while (ch != '\0') {
-                cout << ch;//to be changed
+                cout << ch;
                 ch = memory[++j];
             }
             break;
         }
         case 5:{
             cin >> reg[2];
-            char ch;
-            ch = cin.get();//to be checked
+            char ch = cin.get();
             break;
         }
         case 8:{
@@ -345,7 +300,6 @@ void fun00(){
             while (mod --){
                 memory[memory.size()] = 0;
             }//align 2^2
-            
             for (int i = 0; i < reg[4]; ++ i){
                 memory[memory.size()] = 0;
             }
@@ -552,7 +506,7 @@ void fun16(int i){
         else num = ins[i].number[2];
         reg[ins[i].par[0]] = reg[ins[i].par[1]] * num;
     }
-        ++ pc;
+    ++ pc;
 }
 void fun17(int i){
     ++ cal;
@@ -688,11 +642,4 @@ void fun38(int i){
     else num = ins[i].number[2];
     reg[ins[i].par[0]] = reg[ins[i].par[1]] != num ? 1 : 0;
     ++ pc;
-}
-
-void forge_onward(){
-    ++ sum;
-    //err << optimally[ins[pc].id] << endl;
-    if (ins[pc].id == 0) fun00();
-    else f[ins[pc].id](pc);
 }
